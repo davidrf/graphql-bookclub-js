@@ -1,29 +1,24 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('users', {
+    await queryInterface.createTable('repositories', {
       id: {
         allowNull: false,
         primaryKey: true,
         type: Sequelize.UUID,
         defaultValue: Sequelize.literal('uuid_generate_v4()'),
       },
-      username: {
+      name: {
         allowNull: false,
         type: Sequelize.STRING,
       },
-      firstName: {
+      userId: {
         allowNull: false,
-        type: Sequelize.STRING,
+        type: Sequelize.UUID,
       },
-      lastName: {
+      isPrivate: {
         allowNull: false,
-        type: Sequelize.STRING,
-      },
-      pictureUrl: {
-        type: Sequelize.STRING,
-      },
-      bio: {
-        type: Sequelize.TEXT,
+        defaultValue: false,
+        type: Sequelize.BOOLEAN,
       },
       createdAt: {
         allowNull: false,
@@ -34,12 +29,12 @@ module.exports = {
         type: Sequelize.DATE,
       },
     });
-    return queryInterface.addConstraint('users', ['username'], {
+    return queryInterface.addConstraint('repositories', ['userId', 'name'], {
       type: 'unique',
-      name: 'index_users_on_username',
+      name: 'index_repositories_on_name_and_user_id',
     });
   },
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('users');
+    return queryInterface.dropTable('repositories');
   },
 };

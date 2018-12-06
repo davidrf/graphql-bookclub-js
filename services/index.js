@@ -1,3 +1,1 @@
-module.exports = {
-  userParams: require('./user-params'),
-};
+module.exports = {};

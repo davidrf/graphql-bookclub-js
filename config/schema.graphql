@@ -3,9 +3,15 @@ type Query {
   myBooleanField: Boolean!
   myIntegerField: Int!
   myTextField: String!
+  repository(id: ID!): Repository
   testField: String!
   user(id: ID!): User
   users: [User!]!
+}
+
+type Repository {
+  id: ID!
+  name: String!
 }
 
 type User {

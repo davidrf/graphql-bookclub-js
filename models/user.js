@@ -1,13 +1,25 @@
 module.exports = (sequelize, DataTypes) => {
-  const user = sequelize.define(
+  const User = sequelize.define(
     'user',
     {
-      email: DataTypes.STRING,
+      bio: DataTypes.TEXT,
+      createdAt: DataTypes.DATE,
+      firstName: DataTypes.STRING,
+      lastName: DataTypes.STRING,
+      pictureUrl: DataTypes.STRING,
+      updatedAt: DataTypes.DATE,
+      username: DataTypes.STRING,
     },
-    {},
+    {
+      getterMethods: {
+        fullName() {
+          return `${this.firstName} ${this.lastName}`;
+        },
+      },
+    },
   );
-  user.associate = function(models) {
-    // associations can be defined here
+  User.associate = function(models) {
+    User.hasMany(models.repository);
   };
-  return user;
+  return User;
 };

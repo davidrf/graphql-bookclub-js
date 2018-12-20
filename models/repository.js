@@ -13,8 +13,15 @@ module.exports = (sequelize, DataTypes) => {
   Repository.associate = function(models) {
     Repository.belongsTo(models.user);
   };
-  Repository.gen = async () => {
-    //TODO: Implement me!
+  Repository.gen = async (id, currentUser) => {
+    return Repository.findOne({
+      where: {
+        [sequelize.Op.or]: [
+          { id, isPrivate: false },
+          { id, isPrivate: true, userId: currentUser.id },
+        ],
+      },
+    });
   };
   return Repository;
 };

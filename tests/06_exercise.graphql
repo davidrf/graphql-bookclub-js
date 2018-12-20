@@ -1,6 +1,0 @@
-query exercise_6($id: ID!) {
-  repository(id: $id) {
-    id
-    name
-  }
-}

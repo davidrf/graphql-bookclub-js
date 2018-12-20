@@ -1,51 +1,93 @@
 const setup = require('./config/setup');
 const teardown = require('./config/teardown');
 
-const userData = [
-  {
-    bio: 'world famous salt chef undercover as a web developer',
-    firstName: 'Richard',
-    lastName: 'Chen',
-    pictureUrl: 'https://loremflickr.com/300/300',
-    username: 'trickyricky',
-  },
-  {
-    bio: 'desarrolladora de web',
-    firstName: 'Maggie',
-    lastName: 'Casey',
-    pictureUrl: null,
-    username: 'maggs',
-  },
-  {
-    bio: null,
-    firstName: 'Mark',
-    lastName: 'Fletcher',
-    pictureUrl: 'https://loremflickr.com/300/300',
-    username: 'markymark',
-  },
-];
+const currentUserData = {
+  bio: 'world famous salt chef undercover as a web developer',
+  firstName: 'Richard',
+  lastName: 'Chen',
+  pictureUrl: 'https://loremflickr.com/300/300',
+  username: 'trickyricky',
+};
+
+const otherUserData = {
+  bio: 'loves to give warm fuzzies',
+  firstName: 'Kristina',
+  lastName: 'Durr',
+  pictureUrl: 'https://loremflickr.com/300/300',
+  username: 'alwaysbeworkingevenduringquarterly',
+};
+
+const randomRepositoryData = {
+  name: 'ember',
+  userId: 'b9d78ac5-db65-44f7-9df6-ed464b71e077',
+};
+
+const repositoryData = {
+  name: 'elixir',
+  userId: null,
+};
 
 describe('exercise 03', () => {
   let values;
-  beforeEach(async () => (values = await setup('03')));
-  afterEach(teardown);
+  beforeEach(async () => (values = await setup('03', currentUserData)));
+  afterAll(teardown);
 
-  it('should return the expected response', async () => {
+  xit('should return response with repository if id is for public repository', async () => {
     const { db, EXERCISE_QUERY, testClient } = values;
-    await db.user.bulkCreate(userData);
-    const users = await db.user.findAll();
-    const response = await testClient.query({ query: EXERCISE_QUERY });
+    await db.repository.create(randomRepositoryData);
+    const otherUser = await db.user.create(otherUserData);
+    repositoryData.userId = otherUser.id;
+    const repository = await db.repository.create(repositoryData);
+
+    const response = await testClient.query({
+      query: EXERCISE_QUERY,
+      variables: { id: repository.id },
+    });
 
     expect(response.errors).toBe(undefined);
-    expect(response.data.users.length).toBe(users.length);
+    expect(response.data).toEqual({
+      repository: {
+        name: repository.name,
+      },
+    });
+  });
 
-    response.data.users.forEach(dataUser => {
-      const user = users.find(user => user.id === dataUser.id);
-      expect(user.bio).toBe(dataUser.bio);
-      expect(user.firstName).toBe(dataUser.firstName);
-      expect(user.lastName).toBe(dataUser.lastName);
-      expect(user.pictureUrl).toBe(dataUser.pictureUrl);
-      expect(user.username).toBe(dataUser.username);
+  xit('should return response with repository if id is for private repository owned by user', async () => {
+    const { currentUser, db, EXERCISE_QUERY, testClient } = values;
+    await db.repository.create(randomRepositoryData);
+    repositoryData.isPrivate = true;
+    repositoryData.userId = currentUser.id;
+    const repository = await db.repository.create(repositoryData);
+
+    const response = await testClient.query({
+      query: EXERCISE_QUERY,
+      variables: { id: repository.id },
+    });
+
+    expect(response.errors).toBe(undefined);
+    expect(response.data).toEqual({
+      repository: {
+        name: repository.name,
+      },
+    });
+  });
+
+  xit('should return response with null if id is for private repository not owned by user', async () => {
+    const { db, EXERCISE_QUERY, testClient } = values;
+    await db.repository.create(randomRepositoryData);
+    const otherUser = await db.user.create(otherUserData);
+    repositoryData.isPrivate = true;
+    repositoryData.userId = otherUser.id;
+    const repository = await db.repository.create(repositoryData);
+
+    const response = await testClient.query({
+      query: EXERCISE_QUERY,
+      variables: { id: repository.id },
+    });
+
+    expect(response.errors).toBe(undefined);
+    expect(response.data).toEqual({
+      repository: null,
     });
   });
 });

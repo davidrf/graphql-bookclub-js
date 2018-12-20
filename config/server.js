@@ -8,6 +8,8 @@ const typeDefs = gql`
   ${schema}
 `;
 
-const server = new ApolloServer({ typeDefs, resolvers });
+const context = ({ req }) => req.headers.authorization.split(' ')[1];
+
+const server = new ApolloServer({ context, typeDefs, resolvers });
 
 module.exports = server;

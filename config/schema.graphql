@@ -11,12 +11,7 @@ type CreateUserPayload {
 }
 
 type Query {
-  myArrayField: [String!]!
-  myBooleanField: Boolean!
-  myIntegerField: Int!
-  myTextField: String!
   repository(id: ID!): Repository
-  testField: String!
   user(id: ID!): User
   users: [User!]!
 }

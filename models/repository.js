@@ -13,16 +13,28 @@ module.exports = (sequelize, DataTypes) => {
   Repository.associate = function(models) {
     Repository.belongsTo(models.user);
   };
+  Repository.gen = async () => {
+    //TODO: Implement me!
+  };
   return Repository;
 };
 
-// given a repository object, you can get its corresponding user object
-// repository.getUser()
+// Check out http://docs.sequelizejs.com/manual/tutorial/querying.html#where
 
-// using the db object you can run the following
+// Example OR clause
+// Post.findOne({
+//   where: {
+//     [sequelize.Op.or]: [{authorId: 12}, {published: true}]
+//   }
+// });
+// SELECT * FROM post WHERE authorId = 12 OR published = true LIMIT 1;
 
-// get all repositories
-// db.repository.findAll()
-
-// get repository by id
-// db.repository.findOne({ where: { id: ID_GOES_HERE } });
+// Example IN clause
+// Post.findOne({
+//   where: {
+//     authorId: {
+//       [sequelize.Op.in]: [12, 13],
+//     },
+//   },
+// });
+// SELECT * FROM post WHERE authorId in (12, 13) LIMIT 1;

@@ -1,5 +1,3 @@
-const DataLoader = require('dataloader');
-
 module.exports = (sequelize, DataTypes) => {
   const Repository = sequelize.define(
     'repository',
@@ -14,51 +12,18 @@ module.exports = (sequelize, DataTypes) => {
   );
   Repository.associate = function(models) {
     Repository.belongsTo(models.user);
-  };
 
-  const { Op } = sequelize;
-  const batchGetRepositories = async keys => {
-    const [{ currentUserId }] = keys;
-    const ids = keys.map(key => key.id);
-    const repositories = await Repository.findAll({
-      where: {
-        [Op.or]: [
-          { id: { [Op.in]: ids }, isPrivate: false },
-          { id: { [Op.in]: ids }, isPrivate: true, userId: currentUserId },
-        ],
-      },
+    // user.getCollaborations() gets collaborations
+    // user.getCollaborators() gets collaborator users
+    // ordering - repository.getCollaborations({ order: [['COLUMN_NAME', 'COLUMN_DIRECTION']] }) where COLUMN_DIRECTION is either ASC or DESC
+    // where clause - repository.getCollaborations({ where: { timeStampField: { [db.sequelize.Op.gt]: TIMESTAMP_VALUE } } })
+    // limit clause - repository.getCollaborations({ limit: NUMBER_TO_LIMIT })
+    Repository.hasMany(models.collaboration);
+    Repository.belongsToMany(models.user, {
+      as: 'collaborators',
+      through: models.collaboration,
     });
-
-    return ids.map(
-      id => repositories.find(repository => repository.id === id) || null,
-    );
   };
-  const repositoryLoader = new DataLoader(keys => batchGetRepositories(keys));
 
-  Repository.gen = async (id, currentUser) => {
-    const key = { currentUserId: currentUser.id, id };
-    const repository = await repositoryLoader.load(key);
-    return repository;
-  };
   return Repository;
 };
-
-// Check out http://docs.sequelizejs.com/manual/tutorial/querying.html#where
-
-// Example OR clause
-// Post.findOne({
-//   where: {
-//     [sequelize.Op.or]: [{authorId: 12}, {published: true}]
-//   }
-// });
-// SELECT * FROM post WHERE authorId = 12 OR published = true LIMIT 1;
-
-// Example IN clause
-// Post.findOne({
-//   where: {
-//     authorId: {
-//       [sequelize.Op.in]: [12, 13],
-//     },
-//   },
-// });
-// SELECT * FROM post WHERE authorId in (12, 13) LIMIT 1;

@@ -20,15 +20,15 @@ const collaboratorsData = [
   },
 ];
 
-xdescribe('exercise 01', () => {
+describe('exercise 00', () => {
   let values;
-  beforeEach(async () => (values = await setup('01')));
+  beforeEach(async () => (values = await setup('00')));
   afterEach(teardown);
 
   it('should return the expected response', async () => {
     const { db, EXERCISE_QUERY, testClient } = values;
     const repository = await db.repository.create(repositoryData);
-    const { users } = await createCollaborationsAndUsers({
+    const { collaborations } = await createCollaborationsAndUsers({
       collaboratorsData,
       db,
       repositoryId: repository.id,
@@ -41,13 +41,20 @@ xdescribe('exercise 01', () => {
     });
 
     expect(response.errors).toBe(undefined);
+    expect(response.data.repository.id).toBe(repository.id);
 
-    const nodes = response.data.repository.collaboratorsConnection.edges.map(
-      edge => edge.node,
-    );
+    const { collaboratorsConnection } = response.data.repository;
+    expect(collaboratorsConnection).toBeDefined();
+    expect(collaboratorsConnection.edges).toBeDefined();
+    expect(collaboratorsConnection.edges).toBeInstanceOf(Array);
+    const { edges } = collaboratorsConnection;
 
-    expect(nodes.length).toBe(users.length);
-    expect(nodes).toContainEqual({ id: users[0].id });
-    expect(nodes).toContainEqual({ id: users[1].id });
+    expect(edges.length).toBe(collaborations.length);
+    expect(edges).toContainEqual({
+      joinedAt: collaborations[0].joinedAt.toISOString(),
+    });
+    expect(edges).toContainEqual({
+      joinedAt: collaborations[1].joinedAt.toISOString(),
+    });
   });
 });

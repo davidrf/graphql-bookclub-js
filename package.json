@@ -14,7 +14,8 @@
     "sequelize": "node_modules/.bin/sequelize",
     "start": "node_modules/.bin/nodemon ./config/routes.js",
     "test": "NODE_ENV=test jest -b -i",
-    "setup:test": "NODE_ENV=test yarn db:create && NODE_ENV=test yarn db:migrate"
+    "setup:test": "NODE_ENV=test yarn db:create && NODE_ENV=test yarn db:migrate",
+    "setup:meeting-4": "NODE_ENV=test yarn db:drop && yarn setup:test"
   },
   "dependencies": {
     "apollo-server": "^2.2.6",

@@ -1,11 +1,9 @@
-query exercise_1($id: ID!) {
+query exercise_0($id: ID!) {
   repository(id: $id) {
     id
     collaboratorsConnection {
       edges {
-        node {
-          id
-        }
+        joinedAt
       }
     }
   }

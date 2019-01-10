@@ -1,93 +1,106 @@
 const setup = require('./config/setup');
 const teardown = require('./config/teardown');
-
-const currentUserData = {
-  bio: 'world famous salt chef undercover as a web developer',
-  firstName: 'Richard',
-  lastName: 'Chen',
-  pictureUrl: 'https://loremflickr.com/300/300',
-  username: 'trickyricky',
-};
-
-const otherUserData = {
-  bio: 'loves to give warm fuzzies',
-  firstName: 'Kristina',
-  lastName: 'Durr',
-  pictureUrl: 'https://loremflickr.com/300/300',
-  username: 'alwaysbeworkingevenduringquarterly',
-};
-
-const randomRepositoryData = {
-  name: 'ember',
-  userId: 'b9d78ac5-db65-44f7-9df6-ed464b71e077',
-};
+const createCollaborationsAndUsers = require('./config/createCollaborationsAndUsers');
+const { base64Encode } = require('../services');
 
 const repositoryData = {
   name: 'elixir',
-  userId: null,
+  userId: 'b9d78ac5-db65-44f7-9df6-ed464b71e077',
 };
 
-describe('exercise 03', () => {
+const collaboratorsData = [
+  {
+    firstName: 'Richard',
+    lastName: 'Chen',
+    username: 'trickyricky',
+  },
+  {
+    firstName: 'Danjin',
+    lastName: 'Sun',
+    username: 'yarnskrt4life',
+  },
+  {
+    firstName: 'Maggie',
+    lastName: 'Casey',
+    username: 'margarita',
+  },
+  {
+    firstName: 'Nate',
+    lastName: 'Goodman',
+    username: 'tomismyhero',
+  },
+  {
+    firstName: 'Mark',
+    lastName: 'Fletcher',
+    username: 'markyfletch',
+  },
+];
+
+xdescribe('exercise 03', () => {
   let values;
-  beforeEach(async () => (values = await setup('03', currentUserData)));
+  beforeEach(async () => (values = await setup('03')));
   afterAll(teardown);
 
-  it('should return response with repository if id is for public repository', async () => {
+  it('should return the expected response', async () => {
     const { db, EXERCISE_QUERY, testClient } = values;
-    await db.repository.create(randomRepositoryData);
-    const otherUser = await db.user.create(otherUserData);
-    repositoryData.userId = otherUser.id;
     const repository = await db.repository.create(repositoryData);
+    const { collaborations, users } = await createCollaborationsAndUsers({
+      collaboratorsData,
+      db,
+      repositoryId: repository.id,
+    });
 
-    const response = await testClient.query({
+    const orderBy = {
+      field: 'COLLABORATOR_JOINED_AT',
+      direction: 'ASC',
+    };
+    let after, edges, expectedNodes, nodes, response;
+    let variables = { id: repository.id, first: 2, orderBy };
+
+    // first page
+    variables = { ...variables, after };
+    response = await testClient.query({
       query: EXERCISE_QUERY,
-      variables: { id: repository.id },
+      variables,
     });
 
     expect(response.errors).toBe(undefined);
-    expect(response.data).toEqual({
-      repository: {
-        name: repository.name,
-      },
-    });
-  });
+    ({ edges } = response.data.repository.collaboratorsConnection);
+    expect(edges.length).toEqual(variables.first);
 
-  it('should return response with repository if id is for private repository owned by user', async () => {
-    const { currentUser, db, EXERCISE_QUERY, testClient } = values;
-    await db.repository.create(randomRepositoryData);
-    repositoryData.isPrivate = true;
-    repositoryData.userId = currentUser.id;
-    const repository = await db.repository.create(repositoryData);
+    nodes = edges.map(edge => edge.node);
+    expectedNodes = users.slice(0, 2).map(({ id }) => ({ id }));
+    expect(nodes).toEqual(expectedNodes);
 
-    const response = await testClient.query({
+    const lastEdge = edges[1];
+    after = lastEdge.cursor;
+    expect(after).toEqual(
+      base64Encode(collaborations[1].joinedAt.toISOString()),
+    );
+
+    // second page
+    variables = { ...variables, after };
+    response = await testClient.query({
       query: EXERCISE_QUERY,
-      variables: { id: repository.id },
+      variables,
     });
 
-    expect(response.errors).toBe(undefined);
-    expect(response.data).toEqual({
-      repository: {
-        name: repository.name,
-      },
-    });
-  });
+    ({ edges } = response.data.repository.collaboratorsConnection);
+    nodes = edges.map(edge => edge.node);
+    expectedNodes = users.slice(2, 4).map(({ id }) => ({ id }));
+    expect(nodes).toEqual(expectedNodes);
+    after = edges[1].cursor;
 
-  it('should return response with null if id is for private repository not owned by user', async () => {
-    const { db, EXERCISE_QUERY, testClient } = values;
-    await db.repository.create(randomRepositoryData);
-    const otherUser = await db.user.create(otherUserData);
-    repositoryData.isPrivate = true;
-    repositoryData.userId = otherUser.id;
-    const repository = await db.repository.create(repositoryData);
-
-    const response = await testClient.query({
+    // final page
+    variables = { ...variables, after };
+    response = await testClient.query({
       query: EXERCISE_QUERY,
-      variables: { id: repository.id },
+      variables,
     });
 
-    expect(response.errors).toBe(undefined);
-    expect(response.data).toEqual({
-      repository: null,
-    });
+    ({ edges } = response.data.repository.collaboratorsConnection);
+    nodes = edges.map(edge => edge.node);
+    expectedNodes = users.slice(4).map(({ id }) => ({ id }));
+    expect(nodes).toEqual(expectedNodes);
   });
 });

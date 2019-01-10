@@ -1,55 +1,109 @@
 const setup = require('./config/setup');
 const teardown = require('./config/teardown');
+const createCollaborationsAndUsers = require('./config/createCollaborationsAndUsers');
 
-const currentUserData = {
-  bio: 'world famous salt chef undercover as a web developer',
-  firstName: 'Richard',
-  lastName: 'Chen',
-  pictureUrl: 'https://loremflickr.com/300/300',
-  username: 'trickyricky',
-};
-
-const repositoryData1 = {
+const repositoryData = {
   name: 'elixir',
-  userId: '991c3645-fe47-439f-9bfa-f858ec5a9c66',
-};
-
-const repositoryData2 = {
-  name: 'ember',
   userId: 'b9d78ac5-db65-44f7-9df6-ed464b71e077',
 };
 
-describe('exercise 04 - gen method on Repository class', () => {
+const collaboratorsData = [
+  {
+    firstName: 'Richard',
+    lastName: 'Chen',
+    username: 'trickyricky',
+  },
+  {
+    firstName: 'Danjin',
+    lastName: 'Sun',
+    username: 'yarnskrt4life',
+  },
+  {
+    firstName: 'Maggie',
+    lastName: 'Casey',
+    username: 'margarita',
+  },
+  {
+    firstName: 'Nate',
+    lastName: 'Goodman',
+    username: 'tomismyhero',
+  },
+  {
+    firstName: 'Mark',
+    lastName: 'Fletcher',
+    username: 'markyfletch',
+  },
+];
+
+xdescribe('exercise 04', () => {
   let values;
-  beforeEach(async () => (values = await setup()));
+  beforeEach(async () => (values = await setup('04')));
   afterAll(teardown);
 
-  it('should efficiently load repositories via batching', async () => {
-    const { db } = values;
-    const currentUser = await db.user.create(currentUserData);
-    const repository1 = await db.repository.create(repositoryData1);
-    const repository2 = await db.repository.create(repositoryData2);
-    const originalFindAll = db.repository.findAll.bind(db.repository);
-    const originalFindOne = db.repository.findOne.bind(db.repository);
-    const mockFindAll = jest.fn(originalFindAll);
-    const mockFindOne = jest.fn(originalFindOne);
-    db.repository.findAll = mockFindAll;
-    db.repository.findOne = mockFindOne;
+  it('should return the expected response', async () => {
+    const { db, EXERCISE_QUERY, testClient } = values;
+    const repository = await db.repository.create(repositoryData);
+    const { users } = await createCollaborationsAndUsers({
+      collaboratorsData,
+      db,
+      repositoryId: repository.id,
+    });
 
-    const result1 = db.repository.gen(repository1.id, currentUser);
-    const result2 = db.repository.gen(repository2.id, currentUser);
+    const orderBy = {
+      field: 'COLLABORATOR_JOINED_AT',
+      direction: 'ASC',
+    };
+    let after,
+      collaborators,
+      collaboratorsConnection,
+      expectedCollaborators,
+      pageInfo,
+      response;
+    let variables = { id: repository.id, first: 2, orderBy };
 
-    const results = await Promise.all([result1, result2]);
+    // first page
+    variables = { ...variables, after };
+    response = await testClient.query({
+      query: EXERCISE_QUERY,
+      variables,
+    });
 
-    expect(mockFindOne).not.toHaveBeenCalled();
-    expect(mockFindAll).toHaveBeenCalledTimes(1);
+    expect(response.errors).toBe(undefined);
+    ({ collaboratorsConnection } = response.data.repository);
+    ({ collaborators, pageInfo } = collaboratorsConnection);
 
-    expect(results[0].id).toEqual(repository1.id);
-    expect(results[0].name).toEqual(repository1.name);
-    expect(results[0].userId).toEqual(repository1.userId);
+    expect(collaborators.length).toEqual(variables.first);
+    expectedCollaborators = users.slice(0, 2).map(({ id }) => ({ id }));
+    expect(collaborators).toEqual(expectedCollaborators);
+    expect(pageInfo).toBeDefined();
+    expect(pageInfo.endCursor).toBeDefined();
+    after = pageInfo.endCursor;
 
-    expect(results[1].id).toEqual(repository2.id);
-    expect(results[1].name).toEqual(repository2.name);
-    expect(results[1].userId).toEqual(repository2.userId);
+    // second page
+    variables = { ...variables, after };
+    response = await testClient.query({
+      query: EXERCISE_QUERY,
+      variables,
+    });
+
+    ({ collaboratorsConnection } = response.data.repository);
+    ({ collaborators, pageInfo } = collaboratorsConnection);
+
+    expectedCollaborators = users.slice(2, 4).map(({ id }) => ({ id }));
+    expect(collaborators).toEqual(expectedCollaborators);
+    after = pageInfo.endCursor;
+
+    // final page
+    variables = { ...variables, after };
+    response = await testClient.query({
+      query: EXERCISE_QUERY,
+      variables,
+    });
+
+    ({ collaboratorsConnection } = response.data.repository);
+    ({ collaborators, pageInfo } = collaboratorsConnection);
+
+    expectedCollaborators = users.slice(4).map(({ id }) => ({ id }));
+    expect(collaborators).toEqual(expectedCollaborators);
   });
 });

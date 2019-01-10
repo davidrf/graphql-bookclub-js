@@ -1,3 +1,5 @@
+scalar Date
+
 input CreateUserInput {
   bio: String
   firstName: String!

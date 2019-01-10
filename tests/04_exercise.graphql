@@ -1,4 +1,4 @@
-query exercise_3(
+query exercise_4(
   $first: Int
   $after: String
   $id: ID!
@@ -7,11 +7,11 @@ query exercise_3(
   repository(id: $id) {
     id
     collaboratorsConnection(first: $first, after: $after, orderBy: $orderBy) {
-      edges {
-        cursor
-        node {
-          id
-        }
+      collaborators {
+        id
+      }
+      pageInfo {
+        endCursor
       }
     }
   }

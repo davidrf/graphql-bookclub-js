@@ -22,5 +22,15 @@ exports.collaboratorsConnection = async (object, args) => {
     order: [['createdAt', direction]],
     where: determineWhere(args.after),
   });
-  return { edges: collaborations };
+  const collaborators = await Promise.all(
+    collaborations.map(collaboration => collaboration.getUser()),
+  );
+
+  const pageInfo = {};
+  if (collaborations.length) {
+    const lastCollaboration = collaborations[collaborations.length - 1];
+    pageInfo.endCursor = base64Encode(lastCollaboration.joinedAt.toISOString());
+  }
+
+  return { collaborators, edges: collaborations, pageInfo };
 };
